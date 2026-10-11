@@ -14,13 +14,13 @@ static void add_item_arr(dynamic_arr *arr, LinkedList *item, size_t index);
 
 static void increase_capacity(dynamic_arr *arr);
 
-static int get_item(dynamic_arr *arr, size_t index, LinkedList **output);
+static int get_item_arr(dynamic_arr *arr, size_t index, LinkedList **output);
 
 static Node* _search_list(LinkedList *list, const char *key);
 
 static void _delete_node(LinkedList *list, const char *key);
 
-static int delete_item(dynamic_arr *arr, size_t index);
+static int delete_item_arr(dynamic_arr *arr, size_t index);
 
 static void free_dynamic_array(dynamic_arr * arr);
 
@@ -204,7 +204,7 @@ int add_item(HashTable *hashtbl, char *key, int val){
     }
     int output;
 
-    if (get_value(hashtbl, key, &output) == 0){
+    if (get_item(hashtbl, key, &output) == 0){
 
         printf("can't add item due to duplicate key\n");
 
@@ -248,7 +248,7 @@ int add_item(HashTable *hashtbl, char *key, int val){
 
 }
 
-int get_value(HashTable *tbl, char *key, int *output){
+int get_item(HashTable *tbl, char *key, int *output){
 
 
     size_t index = hash_func(key) % tbl->Buckets.capacity;
@@ -257,7 +257,7 @@ int get_value(HashTable *tbl, char *key, int *output){
     LinkedList *list = NULL;
     Node *node = NULL;
 
-    int item_found = get_item(&tbl->Buckets, index, &list);
+    int item_found = get_item_arr(&tbl->Buckets, index, &list);
 
     if (item_found == 1){
         return 1;
@@ -283,7 +283,7 @@ int get_value(HashTable *tbl, char *key, int *output){
 }
 
 
-int update_value(HashTable *tbl, char *key, int new_value){
+int update_item(HashTable *tbl, char *key, int new_value){
 
 
     size_t index = hash_func(key) % tbl->Buckets.capacity;
@@ -292,7 +292,7 @@ int update_value(HashTable *tbl, char *key, int new_value){
     LinkedList *list = NULL;
     Node *node = NULL;
 
-    int item_found = get_item(&tbl->Buckets, index, &list);
+    int item_found = get_item_arr(&tbl->Buckets, index, &list);
 
     if (item_found == 1){
         //printf("could not update due to item not found\n");
@@ -320,14 +320,14 @@ int update_value(HashTable *tbl, char *key, int new_value){
 }
 
 
-int delete_value(HashTable *tbl, char *key){
+int delete_item(HashTable *tbl, char *key){
 
     size_t index = hash_func(key) % tbl->Buckets.capacity;
 
     LinkedList *list = NULL;
     Node *node = NULL;
 
-    int item_found = get_item(&tbl->Buckets, index, &list);
+    int item_found = get_item_arr(&tbl->Buckets, index, &list);
 
     if (item_found == 1){
         printf("could not delete item due to not found\n");
@@ -345,7 +345,7 @@ int delete_value(HashTable *tbl, char *key){
                 _delete_node(list, key);
                 //remove list from bucket if list is only one node
                 if (list->head == NULL){
-                    delete_item(&tbl->Buckets, index);
+                    delete_item_arr(&tbl->Buckets, index);
                 }
                 //printf("deleting list head\n");
             }
@@ -443,7 +443,7 @@ static void add_item_arr(dynamic_arr *arr, LinkedList *item, size_t index){
 
 }
 
-static int delete_item(dynamic_arr *arr, size_t index){
+static int delete_item_arr(dynamic_arr *arr, size_t index){
 
     //ensure index is valid
     assert(index >= 0 && index < arr->capacity);
@@ -468,7 +468,7 @@ static int delete_item(dynamic_arr *arr, size_t index){
 
 
 
-static int get_item(dynamic_arr *arr, size_t index, LinkedList **output){
+static int get_item_arr(dynamic_arr *arr, size_t index, LinkedList **output){
     assert(index >= 0 && index < arr->capacity);
     *output = arr->nodes[index];
     if (*output == NULL){
@@ -592,7 +592,7 @@ static int test_hash_tbl(HashTable * tbl){
     for(int i = 0; i < 1000; i++){
 
         snprintf(key, sizeof(key), "key_%d", i);
-        assert(get_value(tbl, key, &output) == 0);
+        assert(get_item(tbl, key, &output) == 0);
         assert(output == i);
     }
 
@@ -614,7 +614,7 @@ static int test_hash_tbl(HashTable * tbl){
     assert(node_count == 1000);
     printf("node_count: %zu\n", node_count);
 
-    assert(get_value(tbl, "key_20", &output) == 0);
+    assert(get_item(tbl, "key_20", &output) == 0);
     assert(output = 20);
 
 
@@ -622,14 +622,14 @@ static int test_hash_tbl(HashTable * tbl){
     for(int i = 0; i < 1000; i++){
 
         snprintf(key, sizeof(key), "key_%d", i);
-        assert(update_value(tbl, key, i * 2) == 0);
+        assert(update_item(tbl, key, i * 2) == 0);
     }
 
     //confirm items successfully updated
     for(int i = 0; i < 1000; i++){
 
         snprintf(key, sizeof(key), "key_%d", i);
-        assert(get_value(tbl, key, &output) == 0);
+        assert(get_item(tbl, key, &output) == 0);
         assert(output == i * 2);
     }
 
@@ -637,7 +637,7 @@ static int test_hash_tbl(HashTable * tbl){
     for(int i = 0; i < 1000; i++){
 
         snprintf(key, sizeof(key), "key_%d", i);
-        assert(delete_value(tbl, key) == 0);
+        assert(delete_item(tbl, key) == 0);
     }
 
     //confirm all nodes have been deleted
@@ -645,8 +645,8 @@ static int test_hash_tbl(HashTable * tbl){
     for(int i = 0; i < 1000; i++){
 
         snprintf(key, sizeof(key), "key_%d", i);
-        assert(get_value(tbl, key, &output) == 1);
-        if (get_value(tbl, key, &output) == 0){
+        assert(get_item(tbl, key, &output) == 1);
+        if (get_item(tbl, key, &output) == 0){
             node_count++;
         }
     }

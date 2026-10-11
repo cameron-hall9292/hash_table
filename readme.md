@@ -12,29 +12,27 @@ supposed to do, which is to take a character string as an input and output a uni
 to that particular string, the idea being that the same string input will output the same number and in turn, the same index, which is how you get O(1) lookups in a hash-table. With that said, I plan to improve the hash function by implementing a much more practical one that will reduce collisions.
 
 
-# Future Plans
-
-My goal is to improve the hash function and then potentially use this hash-table in future projects, such as my NES retro console frontend that I hope to build using SDL2 via Buildroot. 
-
 # Usage
 
-To use this hash-table, you want to utilize the following functions: 
+To use this hash-table, you want to clone the repo and utilize the following functions: 
 
 ```c
 
 HashTable* _init_hash_tbl();
 
-int get_value(HashTable *tbl, char *key, int *output);
+int add_item(HashTable *hashtbl, char *key, int val);
 
-int delete_value(HashTable *tbl, char *key);
+int get_item(HashTable *tbl, char *key, int *output);
 
-int update_value(HashTable *tbl, char *key, int new_value);
+int delete_item(HashTable *tbl, char *key);
+
+int update_item(HashTable *tbl, char *key, int new_value);
 
 void free_hash_table(HashTable *tbl);
 
-
 ```
 
-It probably goes without saying, but I'll say it anyway, this hash-table implementation is not productions quality,
+It probably goes without saying, but I'll say it anyway, this hash-table implementation is not production quality,
 meaning it doesn't handle memory allocation failures gracefully. Rather, I decided to terminate the program if memory
-ever fails to allocate. 
+ever fails to allocate properly. However, if you would like to implement it in a small hobby project, then you should be
+fine. If you do use it, be sure to free the memory once you're done using the hash-table.

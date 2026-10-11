@@ -27,11 +27,14 @@ typedef struct HashTable{
 
 HashTable* _init_hash_tbl();
 
-int get_value(HashTable *tbl, char *key, int *output);
+int add_item(HashTable *hashtbl, char *key, int val);
 
-int delete_value(HashTable *tbl, char *key);
+int get_item(HashTable *tbl, char *key, int *output);
 
-int update_value(HashTable *tbl, char *key, int new_value);
+int delete_item(HashTable *tbl, char *key);
+
+int update_item(HashTable *tbl, char *key, int new_value);
+
 
 void free_hash_table(HashTable *tbl);
 
