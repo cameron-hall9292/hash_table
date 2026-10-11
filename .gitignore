@@ -1,0 +1,16 @@
+
+#general
+main
+
+
+#object files
+
+*.o
+*.dSYM
+
+
+
+#debug files
+*.txt
+
+
