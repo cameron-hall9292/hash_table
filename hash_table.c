@@ -1,14 +1,10 @@
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 #include "hash_table.h"
 
 
-//function declaration
- static void _push(LinkedList *list, Node *new_node);
+bool USE_FNV_HASH = true;
 
+//private function declarations
+static void _push(LinkedList *list, Node *new_node);
 
 static void add_item_arr(dynamic_arr *arr, LinkedList *item, size_t index);
 
@@ -28,7 +24,24 @@ static void free_list_memory(LinkedList *list);
 
 static void rehash(HashTable *hashtbl);
 
+static double load_factor(HashTable *hashtbl);
 
+
+
+
+
+//private function definitions
+
+static double load_factor(HashTable *hashtbl){
+
+    double load_fact = 0; 
+    if (hashtbl->Buckets.capacity > 0 && hashtbl->Buckets.node_count > 0){
+        load_fact = (double)hashtbl->Buckets.node_count / (double)hashtbl->Buckets.capacity;
+    }
+
+    return load_fact;
+
+}
 
 static unsigned int hash_func(char *input){
 
@@ -44,15 +57,35 @@ static unsigned int hash_func(char *input){
     return sum;
 }
 
+uint64_t hash_FNV(const char *input){
 
-HashTable* _init_hash_tbl(){
+    //init hash to FNV_OFFSET
+    uint64_t hash = FNV_OFFSET;
+
+    for (size_t i = 0; input[i] != '\0'; i++){
+
+        //perform XOR operation
+        hash = hash ^ (unsigned char)input[i];
+
+        //multiply by FNV_PRIME
+        hash = hash * FNV_PRIME;
+
+    }
+
+    return hash;
+
+}
+
+
+HashTable* _init_hash_tbl(size_t capacity){
 
     HashTable *tbl = calloc(1, sizeof(*tbl));
     if (tbl == NULL){
         exit(EXIT_FAILURE);
     }
-    tbl->Buckets.capacity = 2;
+    tbl->Buckets.capacity = capacity;
     tbl->Buckets.size = 0;
+    tbl->Buckets.node_count = 0;
     tbl->Buckets.nodes = calloc(tbl->Buckets.capacity, sizeof *tbl->Buckets.nodes);
     if(tbl->Buckets.nodes == NULL){
         exit(EXIT_FAILURE);
@@ -101,7 +134,17 @@ static void rehash(HashTable *hashtbl){
             next_node = curr->next;
 
             char *key = curr->key;
-            unsigned int new_index = hash_func(key) % hashtbl->Buckets.capacity;
+            size_t new_index;
+
+            if (USE_FNV_HASH == true ){
+
+                new_index = hash_FNV(key) % hashtbl->Buckets.capacity;
+            }
+
+            else{
+
+                new_index = hash_func(key) % hashtbl->Buckets.capacity;
+            }
 
 
             if (temp_arr.nodes[new_index]->head == NULL){
@@ -194,11 +237,11 @@ static void rehash(HashTable *hashtbl){
 int add_item(HashTable *hashtbl, char *key, int val){
 
 
-    if (hashtbl->Buckets.size == hashtbl->Buckets.capacity){
+    if (load_factor(hashtbl) > MAX_LOAD_FACTOR){
 
-        printf("tbl->size: %zu, tbl->capacity: %zu\n", hashtbl->Buckets.size, hashtbl->Buckets.capacity);
+        //printf("tbl->size: %zu, tbl->capacity: %zu\n", hashtbl->Buckets.size, hashtbl->Buckets.capacity);
         increase_capacity(&hashtbl->Buckets);
-        printf("tbl->size: %zu, tbl->capacity: %zu\n", hashtbl->Buckets.size, hashtbl->Buckets.capacity);
+        //printf("tbl->size: %zu, tbl->capacity: %zu\n", hashtbl->Buckets.size, hashtbl->Buckets.capacity);
         //rehash(hashtbl);
         rehash(hashtbl);
     }
@@ -212,7 +255,17 @@ int add_item(HashTable *hashtbl, char *key, int val){
 
     }
 
-    size_t index = hash_func(key) % hashtbl->Buckets.capacity;
+    size_t index;
+
+    if (USE_FNV_HASH == true ){
+
+        index = hash_FNV(key) % hashtbl->Buckets.capacity;
+    }
+
+    else{
+
+        index = hash_func(key) % hashtbl->Buckets.capacity;
+    }
 
 
     //allocate memory for new node and assign key/val pair
@@ -236,11 +289,13 @@ int add_item(HashTable *hashtbl, char *key, int val){
         }
         list->head = node;
         add_item_arr(&hashtbl->Buckets, list, index);
+        hashtbl->Buckets.node_count++;
     }
 
     else {
     //insert new node into front of already existing linkedlist in dynamic array bucket
         _push(hashtbl->Buckets.nodes[index], node);
+        hashtbl->Buckets.node_count++;
     }
 
 
@@ -251,8 +306,18 @@ int add_item(HashTable *hashtbl, char *key, int val){
 int get_item(HashTable *tbl, char *key, int *output){
 
 
-    size_t index = hash_func(key) % tbl->Buckets.capacity;
 
+    size_t index;
+
+    if (USE_FNV_HASH == true ){
+
+        index = hash_FNV(key) % tbl->Buckets.capacity;
+    }
+
+    else{
+
+        index = hash_func(key) % tbl->Buckets.capacity;
+    }
 
     LinkedList *list = NULL;
     Node *node = NULL;
@@ -286,8 +351,17 @@ int get_item(HashTable *tbl, char *key, int *output){
 int update_item(HashTable *tbl, char *key, int new_value){
 
 
-    size_t index = hash_func(key) % tbl->Buckets.capacity;
+    size_t index;
 
+    if (USE_FNV_HASH == true ){
+
+        index = hash_FNV(key) % tbl->Buckets.capacity;
+    }
+
+    else{
+
+        index = hash_func(key) % tbl->Buckets.capacity;
+    }
 
     LinkedList *list = NULL;
     Node *node = NULL;
@@ -322,7 +396,18 @@ int update_item(HashTable *tbl, char *key, int new_value){
 
 int delete_item(HashTable *tbl, char *key){
 
-    size_t index = hash_func(key) % tbl->Buckets.capacity;
+
+    size_t index;
+
+    if (USE_FNV_HASH == true ){
+
+        index = hash_FNV(key) % tbl->Buckets.capacity;
+    }
+
+    else{
+
+        index = hash_func(key) % tbl->Buckets.capacity;
+    }
 
     LinkedList *list = NULL;
     Node *node = NULL;
@@ -330,7 +415,7 @@ int delete_item(HashTable *tbl, char *key){
     int item_found = get_item_arr(&tbl->Buckets, index, &list);
 
     if (item_found == 1){
-        printf("could not delete item due to not found\n");
+        //printf("could not delete item due to not found\n");
         return 1;
     }
 
@@ -347,11 +432,11 @@ int delete_item(HashTable *tbl, char *key){
                 if (list->head == NULL){
                     delete_item_arr(&tbl->Buckets, index);
                 }
-                //printf("deleting list head\n");
+                tbl->Buckets.node_count--;
             }
             else{ 
                 _delete_node(list, key);
-                //printf("deleting list node that is not head\n");
+                tbl->Buckets.node_count--;
             }
         }
         
@@ -574,103 +659,6 @@ static void free_list_memory(LinkedList *list){
 }
 
 
-static int test_hash_tbl(HashTable * tbl){
-
-    int output;
-    output = 0;
-    char key[32];
-
-    //add a bunch of items
-    for(int i = 0; i < 1000; i++){
-
-        snprintf(key, sizeof(key), "key_%d", i);
-        assert(add_item(tbl, key, i) == 0);
-
-    }
-
-    //get the items back
-    for(int i = 0; i < 1000; i++){
-
-        snprintf(key, sizeof(key), "key_%d", i);
-        assert(get_item(tbl, key, &output) == 0);
-        assert(output == i);
-    }
-
-    //confirm all nodes are accounted for
-    size_t node_count = 0;
-    for (size_t i = 0; i < tbl->Buckets.capacity; i++){
-        if (tbl->Buckets.nodes[i] != NULL){
-            Node *curr = tbl->Buckets.nodes[i]->head; 
-            while (curr != NULL){
-                // printf("curr->key: %s\n", curr->key);
-                // printf("curr->value: %d\n", curr->value);
-                // printf("curr index: %zu\n", i);
-                node_count++;
-                curr = curr->next;
-            }
-        }
-    }
-
-    assert(node_count == 1000);
-    printf("node_count: %zu\n", node_count);
-
-    assert(get_item(tbl, "key_20", &output) == 0);
-    assert(output = 20);
 
 
-    //update all nodes
-    for(int i = 0; i < 1000; i++){
 
-        snprintf(key, sizeof(key), "key_%d", i);
-        assert(update_item(tbl, key, i * 2) == 0);
-    }
-
-    //confirm items successfully updated
-    for(int i = 0; i < 1000; i++){
-
-        snprintf(key, sizeof(key), "key_%d", i);
-        assert(get_item(tbl, key, &output) == 0);
-        assert(output == i * 2);
-    }
-
-    //delete all nodes
-    for(int i = 0; i < 1000; i++){
-
-        snprintf(key, sizeof(key), "key_%d", i);
-        assert(delete_item(tbl, key) == 0);
-    }
-
-    //confirm all nodes have been deleted
-    node_count = 0;
-    for(int i = 0; i < 1000; i++){
-
-        snprintf(key, sizeof(key), "key_%d", i);
-        assert(get_item(tbl, key, &output) == 1);
-        if (get_item(tbl, key, &output) == 0){
-            node_count++;
-        }
-    }
-
-    assert(node_count == 0);
-
-
-    return 0;
-
-}
-
-int main(void){
-
-    HashTable *tbl = _init_hash_tbl();
-
-    //run tests on hash table
-    int tests_passed = test_hash_tbl(tbl);
-
-    if (tests_passed == 0){
-        printf("all tests passed\n");
-    }
-
-    //free hash table memory
-    free_hash_table(tbl);
-
-    return 0;
-}
